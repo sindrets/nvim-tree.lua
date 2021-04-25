@@ -288,7 +288,7 @@ function M.open_file(mode, filename)
   if not target_winid then target_winid = M.Tree.target_winid end
 
   local do_split = mode == "split" or mode == "vsplit"
-  local vertical = mode == "vsplit" or (window_opts.split_command == "splitright" and mode ~= "split")
+  local vertical = mode ~= "split"
 
   -- Check if filename is already open in a window
   local found = false
