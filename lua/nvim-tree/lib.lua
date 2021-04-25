@@ -213,10 +213,80 @@ function M.set_index_and_redraw(fname)
   end
 end
 
+---Get user to pick a window. Selectable windows are all windows in the current
+---tabpage that aren't NvimTree.
+---@return integer|nil The selected window's id, or nil if the user picked an invalid window.
+function M.pick_window()
+  local tabpage = api.nvim_get_current_tabpage()
+  local win_ids = api.nvim_tabpage_list_wins(tabpage)
+  local tree_winid = view.View.tabpages[tabpage]
+  local selectable = {}
+
+  for _, id in ipairs(win_ids) do
+    if id ~= tree_winid then
+      table.insert(selectable, id)
+    end
+  end
+
+  -- If there are no selectable windows: return. If there's only 1, return it without picking.
+  if #selectable == 0 then return nil end
+  if #selectable == 1 then return selectable[1] end
+
+  local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+  if vim.g.nvim_tree_window_picker_chars then
+    chars = tostring(vim.g.nvim_tree_window_picker_chars):upper()
+  end
+
+  local i = 1
+  local win_opts = {}
+  local win_map = {}
+  local laststatus = vim.o.laststatus
+  vim.o.laststatus = 2
+
+  -- Setup UI
+  for _, id in ipairs(selectable) do
+    local char = chars:sub(i, i)
+    local _, statusline = pcall(api.nvim_win_get_option, id, "statusline")
+    local _, winhl = pcall(api.nvim_win_get_option, id, "winhl")
+
+    win_opts[id] = {
+      statusline = statusline or "",
+      winhl = winhl or ""
+    }
+    win_map[char] = id
+
+    api.nvim_win_set_option(id, "statusline", "%=" .. char .. "%=")
+    api.nvim_win_set_option(
+      id, "winhl", "StatusLine:NvimTreeWindowPicker,StatusLineNC:NvimTreeWindowPicker")
+
+    i = i + 1
+    if i > #chars then break end
+  end
+
+  api.nvim_command("redraw")
+  print("Pick window: ")
+  local resp = (utils.get_user_input_char() or ""):upper()
+  utils.clear_prompt()
+
+  -- Restore window options
+  for _, id in ipairs(selectable) do
+    for opt, value in pairs(win_opts[id]) do
+      api.nvim_win_set_option(id, opt, value)
+    end
+  end
+
+  vim.o.laststatus = laststatus
+
+  return win_map[resp]
+end
+
 function M.open_file(mode, filename)
   local tabpage = api.nvim_get_current_tabpage()
   local win_ids = api.nvim_tabpage_list_wins(tabpage)
-  local target_winid = M.Tree.target_winid
+
+  local target_winid = M.pick_window()
+  if not target_winid then target_winid = M.Tree.target_winid end
+
   local do_split = mode == "split" or mode == "vsplit"
   local vertical = mode == "vsplit" or (window_opts.split_command == "splitright" and mode ~= "split")
 
