@@ -233,6 +233,9 @@ local function update_draw_data(tree, depth, markers)
       utils.path_remove_trailing(vim.fn.fnamemodify(tree.cwd, root_folder_modifier)),
       ".."
     })
+    if #root_name > view.View.width then
+      root_name = "…" .. root_name:sub(#root_name - view.View.width + 6, #root_name)
+    end
     table.insert(lines, root_name)
     table.insert(hl, {'NvimTreeRootFolder', index, 0, string.len(root_name)})
     index = 1
