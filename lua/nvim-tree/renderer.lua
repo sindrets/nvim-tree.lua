@@ -233,7 +233,7 @@ local function update_draw_data(tree, depth, markers)
       utils.path_remove_trailing(vim.fn.fnamemodify(tree.cwd, root_folder_modifier)),
       ".."
     })
-    if #root_name > view.View.width then
+    if #root_name > view.View.width - 5 then
       root_name = "…" .. root_name:sub(#root_name - view.View.width + 6, #root_name)
     end
     table.insert(lines, root_name)
